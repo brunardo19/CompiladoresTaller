@@ -1,4 +1,4 @@
-package org.example.compiladorFX;// Generated from C:/Users/Bruno/IdeaProjects/gParserJavaFinal/src/main/java/g.g4 by ANTLR 4.13.2
+package org.example.compiladorFX;// Generated from C:/Users/Bruno/IdeaProjects/Compiladorsito/src/main/g.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.tree.ParseTreeVisitor;
 
 /**
@@ -52,17 +52,71 @@ public interface gVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitVariable_declaration(gParser.Variable_declarationContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link gParser#variable_assign}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitVariable_assign(gParser.Variable_assignContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link gParser#variable_update}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
 	T visitVariable_update(gParser.Variable_updateContext ctx);
 	/**
-	 * Visit a parse tree produced by {@link gParser#variable_assign}.
+	 * Visit a parse tree produced by {@link gParser#function_declaration}.
 	 * @param ctx the parse tree
 	 * @return the visitor result
 	 */
-	T visitVariable_assign(gParser.Variable_assignContext ctx);
+	T visitFunction_declaration(gParser.Function_declarationContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#return_expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitReturn_expression(gParser.Return_expressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#params}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParams(gParser.ParamsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#function_call}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitFunction_call(gParser.Function_callContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#params_call}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitParams_call(gParser.Params_callContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#print_call}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrint_call(gParser.Print_callContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#print_params}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitPrint_params(gParser.Print_paramsContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitExpression(gParser.ExpressionContext ctx);
+	/**
+	 * Visit a parse tree produced by {@link gParser#string_expression}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitString_expression(gParser.String_expressionContext ctx);
 	/**
 	 * Visit a parse tree produced by {@link gParser#math_expression}.
 	 * @param ctx the parse tree

@@ -1,4 +1,4 @@
-package org.example.compiladorFX;// Generated from C:/Users/Bruno/IdeaProjects/gParserJavaFinal/src/main/java/g.g4 by ANTLR 4.13.2
+package org.example.compiladorFX;// Generated from C:/Users/Bruno/IdeaProjects/Compiladorsito/src/main/g.g4 by ANTLR 4.13.1
 import org.antlr.v4.runtime.tree.ParseTreeListener;
 
 /**
@@ -77,6 +77,16 @@ public interface gListener extends ParseTreeListener {
 	 */
 	void exitVariable_declaration(gParser.Variable_declarationContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link gParser#variable_assign}.
+	 * @param ctx the parse tree
+	 */
+	void enterVariable_assign(gParser.Variable_assignContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#variable_assign}.
+	 * @param ctx the parse tree
+	 */
+	void exitVariable_assign(gParser.Variable_assignContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link gParser#variable_update}.
 	 * @param ctx the parse tree
 	 */
@@ -87,15 +97,95 @@ public interface gListener extends ParseTreeListener {
 	 */
 	void exitVariable_update(gParser.Variable_updateContext ctx);
 	/**
-	 * Enter a parse tree produced by {@link gParser#variable_assign}.
+	 * Enter a parse tree produced by {@link gParser#function_declaration}.
 	 * @param ctx the parse tree
 	 */
-	void enterVariable_assign(gParser.Variable_assignContext ctx);
+	void enterFunction_declaration(gParser.Function_declarationContext ctx);
 	/**
-	 * Exit a parse tree produced by {@link gParser#variable_assign}.
+	 * Exit a parse tree produced by {@link gParser#function_declaration}.
 	 * @param ctx the parse tree
 	 */
-	void exitVariable_assign(gParser.Variable_assignContext ctx);
+	void exitFunction_declaration(gParser.Function_declarationContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#return_expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterReturn_expression(gParser.Return_expressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#return_expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitReturn_expression(gParser.Return_expressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#params}.
+	 * @param ctx the parse tree
+	 */
+	void enterParams(gParser.ParamsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#params}.
+	 * @param ctx the parse tree
+	 */
+	void exitParams(gParser.ParamsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#function_call}.
+	 * @param ctx the parse tree
+	 */
+	void enterFunction_call(gParser.Function_callContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#function_call}.
+	 * @param ctx the parse tree
+	 */
+	void exitFunction_call(gParser.Function_callContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#params_call}.
+	 * @param ctx the parse tree
+	 */
+	void enterParams_call(gParser.Params_callContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#params_call}.
+	 * @param ctx the parse tree
+	 */
+	void exitParams_call(gParser.Params_callContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#print_call}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrint_call(gParser.Print_callContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#print_call}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrint_call(gParser.Print_callContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#print_params}.
+	 * @param ctx the parse tree
+	 */
+	void enterPrint_params(gParser.Print_paramsContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#print_params}.
+	 * @param ctx the parse tree
+	 */
+	void exitPrint_params(gParser.Print_paramsContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterExpression(gParser.ExpressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitExpression(gParser.ExpressionContext ctx);
+	/**
+	 * Enter a parse tree produced by {@link gParser#string_expression}.
+	 * @param ctx the parse tree
+	 */
+	void enterString_expression(gParser.String_expressionContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link gParser#string_expression}.
+	 * @param ctx the parse tree
+	 */
+	void exitString_expression(gParser.String_expressionContext ctx);
 	/**
 	 * Enter a parse tree produced by {@link gParser#math_expression}.
 	 * @param ctx the parse tree

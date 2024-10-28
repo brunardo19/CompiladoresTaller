@@ -1,8 +1,6 @@
 package org.example.compiladorFX;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 public class MyVisitorFX extends gBaseVisitor<Object> {
 
@@ -22,9 +20,9 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
 
     void enterScope() {
         textout += "\n" + ("EnterScope");
-        if (symbolTableStack.empty()){
+        if (symbolTableStack.empty()) {
             symbolTableStack.push(symbolTable);
-        }else{
+        } else {
             symbolTableStack.push(new HashMap<>(symbolTable)); // Inherit parent scope
         }
     }
@@ -53,8 +51,31 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
 
         @Override
         public String toString() {
-            return "{Variable \"" + name + "\" de tipo " + type + " con valor = " + value +"}";
+            if (value != null) {
+                return "{Variable \"" + name + "\" de tipo " + type + " con valor = " + value + "}";
+            } else {
+                return "{Variable \"" + name + "\" de tipo " + type + "}";
+            }
         }
+    }
+
+    // New FunctionSymbol class:
+    static class FunctionSymbol extends Symbol {
+        List<Symbol> parameters;
+        Object returnValue;
+        gParser.ProgramContext program;
+
+        public FunctionSymbol(String name, String type, List<Symbol> parameters, gParser.ProgramContext program) {
+            super(name, type);
+            this.parameters = parameters;
+            this.program = program;
+        }
+
+
+        public String toString() {
+            return "{Funcion \"" + name + "\" que devuelve tipo " + type + " con parametros = " + parameters + "}";
+        }
+
     }
 
     boolean isDefined(String id) {
@@ -77,21 +98,31 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
             double leftVal = ((Number) left).doubleValue();
             double rightVal = ((Number) right).doubleValue();
             switch (operator) {
-                case "==": return leftVal == rightVal;
-                case "!=": return leftVal != rightVal;
-                case "<":  return leftVal < rightVal;
-                case ">":  return leftVal > rightVal;
-                case "<=": return leftVal <= rightVal;
-                case ">=": return leftVal >= rightVal;
-                default: return false; // Should not happen in correct grammar
+                case "==":
+                    return leftVal == rightVal;
+                case "!=":
+                    return leftVal != rightVal;
+                case "<":
+                    return leftVal < rightVal;
+                case ">":
+                    return leftVal > rightVal;
+                case "<=":
+                    return leftVal <= rightVal;
+                case ">=":
+                    return leftVal >= rightVal;
+                default:
+                    return false; // Should not happen in correct grammar
             }
-        } else if (left instanceof Boolean && right instanceof Boolean){
-            boolean leftb = ((Boolean)left).booleanValue();
-            boolean rightb = ((Boolean)right).booleanValue();
+        } else if (left instanceof Boolean && right instanceof Boolean) {
+            boolean leftb = ((Boolean) left).booleanValue();
+            boolean rightb = ((Boolean) right).booleanValue();
             switch (operator) {
-                case "==": return leftb == rightb;
-                case "!=": return leftb != rightb;
-                default: return false; // Should not happen
+                case "==":
+                    return leftb == rightb;
+                case "!=":
+                    return leftb != rightb;
+                default:
+                    return false; // Should not happen
             }
         } else {
             textout += "\n" + ("Error de tipos en comparacion : " + left + " " + operator + " " + right);
@@ -101,20 +132,104 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
 
 
     // Método para evaluar tipo en asignaciones
-    Boolean checkAssignmentCompatibility(String id, Object value) {
-        if (isDefined(id)) {
-            String varType = symbolTableStack.peek().get(id).type;
-            if (varType.equals("int") && !(value instanceof Integer)) {
-                if (((Number)value).doubleValue() != Math.rint(((Number)value).doubleValue())){
-                    textout += "\n" + ("Error de tipo: No se puede asignar un valor no entero a variable int '" + id + "'");
-                    return false;
-                }else{return true;}
-            } else if (varType.equals("double") && !(value instanceof Double || value instanceof Integer)) { // Allow int to double conversion
-                textout += "\n" + ("Error de tipo: No se puede asignar un valor no numerico a variable double '" + id + "'");
-                return false;
-            }
+    boolean checkAssignmentCompatibility(String id, Object value) {
+        if (!isDefined(id)) {
+            return true; // Handle undefined id case first
         }
-        return true;
+
+        String varType = symbolTableStack.peek().get(id).type;
+
+        switch (varType) {
+            case "int":
+                if (!(value instanceof Integer)) {
+                    if (value instanceof Number && ((Number) value).doubleValue() == Math.rint(((Number) value).doubleValue())) {
+                        return true; // Allow integer-valued doubles/floats to int
+                    } else {
+                        textout += "\n" + ("Error de tipo: No se puede asignar un valor no entero a variable int '" + id + "'");
+                        return false;
+                    }
+                }
+                return true; // Value is an Integer, so it's compatible
+
+            case "double":
+                if (!(value instanceof Double || value instanceof Integer)) {
+                    textout += "\n" + ("Error de tipo: No se puede asignar un valor no numerico a variable double '" + id + "'");
+                    return false;
+                }
+                return true; // Value is a Double or Integer, so it's compatible
+
+            case "string":
+                if (!(value instanceof String)) {
+                    textout += "\n" + ("Error de tipo: No se puede asignar un valor no string a variable string '" + id + "'");
+                    return false;
+                }
+                return true;
+
+            case "boolean":
+                if (!(value instanceof Boolean)) {
+                    textout += "\n" + ("Error de tipo: No se puede asignar un valor no booleano a variable booleana '" + id + "'");
+                    return false;
+                }
+                return true;
+
+            default:  // Handle other types or the default case as needed
+                System.out.println("checkAssignmentCompatibility - tipo recibido invalido");
+                return false;
+        }
+    }
+
+    // Metodo para evaluar tipo en declaraciones
+    boolean checkDeclarationCompatibility(String id, String type, Object value) {
+        if (isDefined(id)) {
+            textout += "\n" + ("Error: la variable '" + id + "' ya está declarada.");
+            return false; // Variable already declared
+        }
+
+        // Now check type compatibility as before, but handle null for default values
+        switch (type) {
+            case "int":
+                if (value != null && !(value instanceof Integer)) {
+                    if (value instanceof Number && ((Number) value).doubleValue() == Math.rint(((Number) value).doubleValue())) {
+                        return true; // Integer-valued doubles/floats allowed
+                    } else {
+                        textout += "\n" + ("Error de tipo: Valor inicial no entero para variable int '" + id + "'");
+                        return false;
+                    }
+                }
+                return true;
+
+            case "double":
+                if (value != null && !(value instanceof Double || value instanceof Integer)) {
+                    textout += "\n" + ("Error de tipo: Valor inicial no numérico para variable double '" + id + "'");
+                    return false;
+                }
+                return true;
+
+            case "string":
+                if (value != null && !(value instanceof String)) {
+                    textout += "\n" + ("Error de tipo: Valor inicial no string para variable string '" + id + "'");
+                    return false;
+                }
+                return true;
+
+            case "boolean":
+                if (value != null && !(value instanceof Boolean)) {
+                    textout += "\n" + ("Error de tipo: Valor inicial no booleano para variable boolean '" + id + "'");
+                    return false;
+                }
+                return true;
+
+            default:
+                System.out.println("checkDeclarationCompatibility - tipo recibido inválido"); // Or handle other types
+                return false;
+        }
+    }
+
+    boolean checkIdCompatibility(String a, String b) {
+        String varTypeA = symbolTableStack.peek().get(a).type;
+        String varTypeB = symbolTableStack.peek().get(b).type;
+
+        return Objects.equals(varTypeA, varTypeB);
     }
 
     @Override
@@ -129,26 +244,54 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
 
     @Override
     public Object visitVariable_declaration(gParser.Variable_declarationContext ctx) {
-        String id = ctx.ID().getText();
+        String id = ctx.ID(0).getText();
         String type = ctx.type().getText();
 
         if (isDefined(id)) {
             textout += "\n" + ("Error: Variable '" + id + "' ya declarada.");
         } else {
-            if (ctx.math_expression() != null) { // Declaration with initialization
-                Object value = visit(ctx.math_expression());
-                if (checkAssignmentCompatibility(id, value)) {
+            if (ctx.ID(1) != null) {
+                String id2 = ctx.ID(1).getText();
+                if (!isDefined(id2)) {
+                    textout += "\n" + ("Error: Variable '" + id2 + "' no declarada.");
+                    return null;
+                } else {
+                    String varType2 = symbolTableStack.peek().get(id2).type;
+                    Object value2 = symbolTableStack.peek().get(id2).value;
+                    if (checkDeclarationCompatibility(id, type, value2)) {
+                        symbolTableStack.peek().put(id, new Symbol(id, type, value2));
+                        textout += "\n" + ("Declaracion de variable: " + symbolTableStack.peek().get(id));
+                    }
+                    return null;
+                }
+            }
+            if (ctx.expression() != null) {// Declaration with initialization
+                Object value = visit(ctx.expression());
+                if (checkDeclarationCompatibility(id, type, value)) {
                     symbolTableStack.peek().put(id, new Symbol(id, type, value));
                     textout += "\n" + ("Declaracion de variable: " + symbolTableStack.peek().get(id));
                 }
-            } else { // Declaration without initialization
-                symbolTableStack.peek().put(id, new Symbol(id, type));
-                textout += "\n" + ("Declaracion de variable: " + symbolTableStack.peek().get(id));
+                return null;
             }
+            // Declaration without initialization
+            symbolTableStack.peek().put(id, new Symbol(id, type));
+            textout += "\n" + ("Declaracion de variable: " + symbolTableStack.peek().get(id));
+
         }
         return null;
     }
 
+    @Override
+    public Object visitString_expression(gParser.String_expressionContext ctx) {
+        String text = ctx.STRING().getText();
+        String value = text.substring(1, text.length() - 1);
+
+        StringBuilder sb = new StringBuilder(value);
+        if (ctx.string_expression() != null) {
+            sb.append(visit(ctx.string_expression()));
+        }
+        return sb.toString();
+    }
 
     @Override
     public Object visitVariable_update(gParser.Variable_updateContext ctx) {
@@ -206,11 +349,10 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
         return null;
     }
 
-
     @Override
     public Object visitVariable_assign(gParser.Variable_assignContext ctx) {
         String id = ctx.ID().getText();
-        Object value = visit(ctx.math_expression()); // Evaluate the right-hand side expression
+        Object value = visit(ctx.expression()); // Evaluate the right-hand side expression
 
         if (!isDefined(id)) {
             textout += "\n" + ("Error: Variable '" + id + "' not declared.");
@@ -237,9 +379,10 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
 
     @Override
     public Object visitWhile_loop(gParser.While_loopContext ctx) {
-        while ((Boolean) visit(ctx.logical_operation())){
+        while ((Boolean) visit(ctx.logical_operation())) {
             visit(ctx.program()); // Execute the loop body
-        };
+        }
+        ;
         return null; // Do-while loops don't have a return value
     }
 
@@ -254,7 +397,8 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     @Override
     public Object visitFor_loop(gParser.For_loopContext ctx) {
         enterScope();
-        visit(ctx.variable_assign()); // Initialization
+        Object declaration = visit(ctx.variable_declaration()); // Initialization
+
 
         while ((Boolean) visit(ctx.logical_operation())) {
             visit(ctx.program()); // Execute the loop body
@@ -264,7 +408,6 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
 
         return null; // For loops don't have a return value
     }
-
 
     @Override
     public Object visitMath_expression(gParser.Math_expressionContext ctx) {
@@ -390,14 +533,87 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     public Object visitBoolean(gParser.BooleanContext ctx) {
         if (ctx.TRUE() != null) {
             return true;
+        } else if (ctx.FALSE() != null) {
+            return false;
+        } else if (ctx.ID() != null) {
+            String id = ctx.ID().getText();
+            if (!isDefined(id)) {
+                textout += "\n" + ("Error: Variable '" + id + "' no declarada.");
+                return null;
+            } else {
+                Object val = symbolTableStack.peek().get(id).value;
+                if (val == null) {
+                    textout += "\n" + ("Error: Variable '" + id + "' no inicializada.");
+                    return null;
+                } else if (val instanceof Boolean) {
+                    return (Boolean) val;
+                } else {
+                    textout += "\n" + ("Error: Variable '" + id + "' no es una variable booleana");
+                    return null;
+                }
+            }
         } else if (ctx.math_expression() != null) { // Comparison between math expressions
             Double left = (Double) visit(ctx.math_expression(0));
             Double right = (Double) visit(ctx.math_expression(1));
             String operator = ctx.comparison_operator().getText();
             System.out.println(left + " " + operator + " " + right);
             return evalCondition(left, operator, right);
-        } else { // Must be FALSE
-            return false;
         }
+        return false;
+    }
+
+    @Override
+    public Object visitFunction_declaration(gParser.Function_declarationContext ctx) {
+        String functionName = ctx.ID().getText();
+        String returnType = ctx.type().getText();
+
+        // Handle parameters
+        List<Symbol> parameters = new ArrayList<>();
+        if (ctx.params() != null) {
+            parameters = visitParams(ctx.params()); // Create a helper method for params
+        }
+
+        // Store function information in the symbol table
+        FunctionSymbol functionSymbol = new FunctionSymbol(functionName, returnType, parameters, ctx.program());
+        symbolTable.put(functionName, functionSymbol); // Global scope for functions
+
+        return null;  // Function declaration doesn't return a value itself
+    }
+
+    public List<Symbol> visitParams(gParser.ParamsContext ctx) {
+        List<Symbol> params = new ArrayList<>();
+        String paramType = ctx.type().getText();
+        String paramName = ctx.ID().getText();
+        params.add(new Symbol(paramName, paramType));
+        if (ctx.params() != null) {
+            params.addAll((List<Symbol>) visit(ctx.params()));
+        }
+        return params;
+    }
+
+    public List<Object> visitParams_call(gParser.Params_callContext ctx) {
+        List<Object> params = new ArrayList<>();
+        Object paramValue = visit(ctx.expression());
+        params.add(paramValue);
+        if (ctx.params_call() != null) {
+            params.addAll((List<Symbol>) visit(ctx.params_call()));
+        }
+        return params;
+    }
+
+
+    @Override
+    public Object visitFunction_call(gParser.Function_callContext ctx) {
+        String functionName = ctx.ID().getText();
+
+        // 1. Check if the function is defined
+        if (!isDefined(functionName)) {
+            textout += "\n" + "Function '" + functionName + "' not defined.";
+            return null;
+        }
+
+        FunctionSymbol functionSymbol = (FunctionSymbol) symbolTable.get(functionName);
+        //TODO verificar parametros, ejecutar funcion.
+        return null;
     }
 }
