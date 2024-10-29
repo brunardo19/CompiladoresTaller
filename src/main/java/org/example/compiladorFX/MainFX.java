@@ -174,7 +174,7 @@ public class MainFX extends Application {
             semanticErrorTextArea.appendText("\n");
             semanticErrorTextArea.appendText("\n Tabla de Simbolos Global:\n");
             semanticErrorTextArea.appendText("-----------------------------------------------\n");
-            for (Map.Entry<String, MyVisitorFX.Symbol> entry : visitor.symbolTable.entrySet()) {
+            for (Map.Entry<String, MyVisitorFX.Symbol> entry : visitor.symbolTableGlobal.entrySet()) {
                 semanticErrorTextArea.appendText(entry.getKey() + ": " + entry.getValue() + "\n");
             }
             semanticErrorTextArea.appendText("-----------------------------------------------\n");

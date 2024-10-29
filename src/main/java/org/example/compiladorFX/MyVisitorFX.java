@@ -4,6 +4,12 @@ import java.util.*;
 
 public class MyVisitorFX extends gBaseVisitor<Object> {
 
+    public MyVisitorFX(String textout, Map<String, Symbol> symbolTableGlobal, Stack<Map<String, Symbol>> symbolTableStack) {
+        this.textout = textout;
+        this.symbolTableGlobal = symbolTableGlobal;
+        this.symbolTableStack = symbolTableStack;
+    }
+
     public String getTextout() {
         return textout;
     }
@@ -15,21 +21,101 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     }
 
     // Tabla de símbolos
-    Map<String, Symbol> symbolTable = new HashMap<>();
+    Map<String, Symbol> symbolTableGlobal = new HashMap<>();
+    Map<String, Symbol> symbolTableLocal = new HashMap<>();
     Stack<Map<String, Symbol>> symbolTableStack = new Stack<>();
 
-    void enterScope() {
-        textout += "\n" + ("EnterScope");
-        if (symbolTableStack.empty()) {
-            symbolTableStack.push(symbolTable);
-        } else {
-            symbolTableStack.push(new HashMap<>(symbolTable)); // Inherit parent scope
+    public Object getTableValue(String id) {
+        for (int i = symbolTableStack.size() - 1; i >= 0; i--) {  // Search local scopes first
+            Map<String, Symbol> currentScope = symbolTableStack.get(i);
+            if (currentScope.containsKey(id)) {
+                return currentScope.get(id).value;
+            }
         }
+        if (symbolTableGlobal.containsKey(id)) {  // Then check global
+            return symbolTableGlobal.get(id).value;
+        }
+        textout += "\n" + ("variable " + id + " no declarada");
+        return null;
     }
 
-    void exitScope() {
-        textout += "\n" + ("ExitScope");
-        symbolTable = symbolTableStack.pop(); // Restore parent scope
+    Symbol getTableSymbol(String id) {
+        for (int i = symbolTableStack.size() - 1; i >= 0; i--) {  // Search local scopes first
+            Map<String, Symbol> currentScope = symbolTableStack.get(i);
+            if (currentScope.containsKey(id)) {
+                return currentScope.get(id);
+            }
+        }
+        if (symbolTableGlobal.containsKey(id)) {  // Then check global
+            return symbolTableGlobal.get(id);
+        }
+        textout += "\n" + ("variable " + id + " no declarada");
+        return null;
+    }
+
+
+    String getTableType(String id) {
+        for (int i = symbolTableStack.size() - 1; i >= 0; i--) {  // Search local scopes first
+            Map<String, Symbol> currentScope = symbolTableStack.get(i);
+            if (currentScope.containsKey(id)) {
+                return currentScope.get(id).type;
+            }
+        }
+        if (symbolTableGlobal.containsKey(id)) {  // Then check global
+            return symbolTableGlobal.get(id).type;
+        }
+        textout += "\n" + ("variable " + id + " no declarada");
+        return null;
+    }
+
+
+    void declareInTable(String id, String type, Object value) {
+        // Local variable
+        Map<String, Symbol> currentScope = symbolTableStack.peek();
+        if (currentScope.containsKey(id)) { // Check both local and global for redeclaration
+            textout += "\n" + ("Variable " + id + " already declared in this scope or globally.");
+        } else {
+            currentScope.put(id, new Symbol(id, type, value));
+        }
+
+    }
+
+    void updateTable(String id, Object value) {
+        for (int i = symbolTableStack.size() - 1; i >= 0; i--) {
+            Map<String, Symbol> currentScope = symbolTableStack.get(i);
+            if (currentScope.containsKey(id)) {
+                currentScope.get(id).value = value;
+                return;
+            }
+        }
+        if (symbolTableGlobal.containsKey(id)) {
+            symbolTableGlobal.get(id).value = value;
+            return;
+        }
+        textout += "\n" + ("variable " + id + " no declarada");
+
+    }
+
+    public void enterScope() {
+        textout += "\n" + ("Entering Scope");
+        symbolTableStack.push(new HashMap<>()); // New scope, doesn't inherit by default
+    }
+
+
+    public void exitScope() {
+        if (symbolTableStack.size() > 1) { // prevent popping off the global scope accidentally
+            textout += "\n" + ("Exiting Scope");
+            Map<String, Symbol> leavingScope = symbolTableStack.pop();
+
+            // Print or process leaving variables if you need to.
+            System.out.println("Variables leaving scope: " + leavingScope);
+
+
+        } else {
+            symbolTableGlobal = symbolTableStack.pop();
+            textout += "\nCannot exit global scope";
+        }
+
     }
 
     // Clase para representar símbolos
@@ -62,13 +148,16 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     // New FunctionSymbol class:
     static class FunctionSymbol extends Symbol {
         List<Symbol> parameters;
-        Object returnValue;
+        //Object returnValue;
         gParser.ProgramContext program;
+        gParser.Return_expressionContext returnExpression;
 
-        public FunctionSymbol(String name, String type, List<Symbol> parameters, gParser.ProgramContext program) {
+
+        public FunctionSymbol(String name, String type, List<Symbol> parameters, gParser.ProgramContext program, gParser.Return_expressionContext returnExpression) {
             super(name, type);
             this.parameters = parameters;
             this.program = program;
+            this.returnExpression = returnExpression;
         }
 
 
@@ -79,7 +168,21 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     }
 
     boolean isDefined(String id) {
-        return symbolTableStack.peek().containsKey(id);
+        // 1. Check local scopes (from innermost to outermost)
+        for (int i = symbolTableStack.size() - 1; i >= 0; i--) {
+            if (symbolTableStack.get(i).containsKey(id)) {
+                return true;
+            }
+        }
+
+        // 2. If not found locally, check the global scope
+        return symbolTableGlobal.containsKey(id);
+    }
+
+    boolean isLocallyDefined(String id) {
+        // 1. Check local scope
+        Map<String, Symbol> currentScope = symbolTableStack.peek();
+        return currentScope.containsKey(id);
     }
 
     // Método para verificar si una variable es del tipo esperado
@@ -137,7 +240,8 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
             return true; // Handle undefined id case first
         }
 
-        String varType = symbolTableStack.peek().get(id).type;
+        //String varType = symbolTableStack.peek().get(id).type;
+        String varType = getTableType(id);
 
         switch (varType) {
             case "int":
@@ -180,7 +284,7 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
 
     // Metodo para evaluar tipo en declaraciones
     boolean checkDeclarationCompatibility(String id, String type, Object value) {
-        if (isDefined(id)) {
+        if (isLocallyDefined(id)) {
             textout += "\n" + ("Error: la variable '" + id + "' ya está declarada.");
             return false; // Variable already declared
         }
@@ -235,6 +339,7 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     @Override
     public Object visitProgram(gParser.ProgramContext ctx) {
         enterScope(); // Enter the global scope
+        //System.out.println(symbolTableStack.peek());
         for (gParser.StatementContext stmt : ctx.statement()) {
             visit(stmt);
         }
@@ -247,7 +352,7 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
         String id = ctx.ID(0).getText();
         String type = ctx.type().getText();
 
-        if (isDefined(id)) {
+        if (isLocallyDefined(id)) {
             textout += "\n" + ("Error: Variable '" + id + "' ya declarada.");
         } else {
             if (ctx.ID(1) != null) {
@@ -256,10 +361,11 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
                     textout += "\n" + ("Error: Variable '" + id2 + "' no declarada.");
                     return null;
                 } else {
-                    String varType2 = symbolTableStack.peek().get(id2).type;
-                    Object value2 = symbolTableStack.peek().get(id2).value;
+                    String varType2 = getTableType(id2);
+                    Object value2 = getTableValue(id2);
                     if (checkDeclarationCompatibility(id, type, value2)) {
-                        symbolTableStack.peek().put(id, new Symbol(id, type, value2));
+                        declareInTable(id, type, value2);
+                        //symbolTableStack.peek().put(id, new Symbol(id, type, value2));
                         textout += "\n" + ("Declaracion de variable: " + symbolTableStack.peek().get(id));
                     }
                     return null;
@@ -268,13 +374,15 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
             if (ctx.expression() != null) {// Declaration with initialization
                 Object value = visit(ctx.expression());
                 if (checkDeclarationCompatibility(id, type, value)) {
-                    symbolTableStack.peek().put(id, new Symbol(id, type, value));
+                    declareInTable(id, type, value);
+                    //symbolTableStack.peek().put(id, new Symbol(id, type, value));
                     textout += "\n" + ("Declaracion de variable: " + symbolTableStack.peek().get(id));
                 }
                 return null;
             }
             // Declaration without initialization
-            symbolTableStack.peek().put(id, new Symbol(id, type));
+            //symbolTableStack.peek().put(id, new Symbol(id, type));
+            declareInTable(id, type, null);
             textout += "\n" + ("Declaracion de variable: " + symbolTableStack.peek().get(id));
 
         }
@@ -294,11 +402,43 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitPrint_params(gParser.Print_paramsContext ctx) {
+        // Evaluar la primera expresión
+        Object value = visit(ctx.getChild(0)); // Asumiendo que el primer hijo es la expresión
+
+        // Si hay más parámetros para procesar
+        if (ctx.getChildCount() > 1) { // Verificar si hay más hijos
+            // Evaluar el resto de los parámetros
+            Object nextValue = visit(ctx.print_params());
+
+            // Concatenar o sumar según el tipo
+            if (value instanceof String) {
+                // Si el primer valor es una cadena, concatenar el segundo valor como cadena
+                value = (String) value + nextValue.toString();
+            } else if (nextValue instanceof String) {
+                // Si el segundo valor es una cadena, concatenar el primero como cadena
+                value = value.toString() + (String) nextValue;
+            } else if (value instanceof Number && nextValue instanceof Number) {
+                // Si ambos son numéricos, sumarlos
+                if (value instanceof Double || nextValue instanceof Double) {
+                    value = ((Number) value).doubleValue() + ((Number) nextValue).doubleValue();
+                } else {
+                    value = ((Number) value).intValue() + ((Number) nextValue).intValue();
+                }
+            } else {
+                throw new RuntimeException("Tipos de datos incompatibles para la operación.");
+            }
+        }
+
+        return value;
+    }
+
+    @Override
     public Object visitVariable_update(gParser.Variable_updateContext ctx) {
         String id = ctx.ID().getText();
 
         // Retrieve the symbol
-        Symbol symbol = symbolTableStack.peek().get(id);
+        Symbol symbol = getTableSymbol(id);
 
         if (symbol == null) {
             textout += "\n" + ("Error: Variable '" + id + "' no declarada.");
@@ -358,8 +498,9 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
             textout += "\n" + ("Error: Variable '" + id + "' not declared.");
         } else {
             if (checkAssignmentCompatibility(id, value)) {
-                symbolTableStack.peek().get(id).value = value;
-                textout += "\n" + ("Asignacion de variable: " + symbolTableStack.peek().get(id));
+                updateTable(id, value);
+                //symbolTableStack.peek().get(id).value = value;
+                textout += "\n" + ("Asignacion de variable: " + getTableSymbol(id).name + " = " + getTableValue(id));
             }
         }
         return null;
@@ -455,7 +596,8 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
                 textout += "\n" + ("Error: Variable '" + id + "' no declarada.");
                 return 0.0;
             } else {
-                Object val = symbolTableStack.peek().get(id).value;
+                //Object val = symbolTableStack.peek().get(id).value;
+                Object val = getTableValue(id);
                 if (val == null) {
                     textout += "\n" + ("Error: Variable '" + id + "' no inicializada.");
                     return 0.0;
@@ -563,6 +705,19 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitPrint_call(gParser.Print_callContext ctx) {
+        // Evaluar los parámetros de impresión
+        Object result = visit(ctx.print_params());
+
+        // Imprimir el resultado
+        System.out.println(result);
+
+        // Devuelve null ya que la función print no tiene un valor de retorno
+        return null;
+    }
+
+
+    @Override
     public Object visitFunction_declaration(gParser.Function_declarationContext ctx) {
         String functionName = ctx.ID().getText();
         String returnType = ctx.type().getText();
@@ -574,8 +729,11 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
         }
 
         // Store function information in the symbol table
-        FunctionSymbol functionSymbol = new FunctionSymbol(functionName, returnType, parameters, ctx.program());
-        symbolTable.put(functionName, functionSymbol); // Global scope for functions
+        FunctionSymbol functionSymbol;
+
+        functionSymbol = new FunctionSymbol(functionName, returnType, parameters, ctx.program(), ctx.return_expression());
+
+        symbolTableGlobal.put(functionName, functionSymbol); // Global scope for functions
 
         return null;  // Function declaration doesn't return a value itself
     }
@@ -596,24 +754,100 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
         Object paramValue = visit(ctx.expression());
         params.add(paramValue);
         if (ctx.params_call() != null) {
-            params.addAll((List<Symbol>) visit(ctx.params_call()));
+            params.addAll((List<Object>) visit(ctx.params_call()));
         }
         return params;
     }
 
+    public boolean checkParametersCompatibility(List<Symbol> param, List<Object> args) {
+        for (int i = 0; i < param.size(); i++) {
+            String type = param.get(i).type;
+            Object value = args.get(i);
+            switch (type) {
+                case "int":
+                    if (!(value instanceof Integer)) {
+                        return value instanceof Number && ((Number) value).doubleValue() == Math.rint(((Number) value).doubleValue()); // Allow integer-valued doubles/floats to int
+                    }
+                    return true; // Value is an Integer, so it's compatible
+
+                case "double":
+                    return value instanceof Double || value instanceof Integer;// Value is a Double or Integer, so it's compatible
+
+                case "string":
+                    return value instanceof String;
+
+                case "boolean":
+                    return value instanceof Boolean;
+            }
+        }
+        return true;
+    }
+
+
+    public boolean checkReturnCompatibility(String type, Object value) {
+
+        switch (type) {
+            case "int":
+                if (!(value instanceof Integer)) {
+                    return value instanceof Number && ((Number) value).doubleValue() == Math.rint(((Number) value).doubleValue()); // Allow integer-valued doubles/floats to int
+                }
+                return true; // Value is an Integer, so it's compatible
+
+            case "double":
+                return value instanceof Double || value instanceof Integer;// Value is a Double or Integer, so it's compatible
+
+            case "string":
+                return value instanceof String;
+
+            case "boolean":
+                return value instanceof Boolean;
+        }
+
+        return true;
+    }
 
     @Override
     public Object visitFunction_call(gParser.Function_callContext ctx) {
+        Object returnValue = null;
         String functionName = ctx.ID().getText();
 
         // 1. Check if the function is defined
         if (!isDefined(functionName)) {
-            textout += "\n" + "Function '" + functionName + "' not defined.";
-            return null;
+            throw new RuntimeException("Function '" + functionName + "' not defined.");
         }
 
-        FunctionSymbol functionSymbol = (FunctionSymbol) symbolTable.get(functionName);
-        //TODO verificar parametros, ejecutar funcion.
-        return null;
+        FunctionSymbol functionSymbol = (FunctionSymbol) symbolTableGlobal.get(functionName);
+        List<Symbol> param = functionSymbol.parameters;
+        List<Object> args = (List<Object>) visit(ctx.params_call());
+
+        if (checkParametersCompatibility(param, args)) {
+            enterScope(); // Entrar en el ámbito de la función
+            for (int i = 0; i < param.size(); i++) {
+                String type = param.get(i).type;
+                String id = param.get(i).name;
+                Object value = args.get(i);
+                symbolTableStack.peek().put(id, new Symbol(id, type, value));
+            }
+
+            MyVisitorFX visitor = new MyVisitorFX("");
+
+            // Aquí se ejecutan las declaraciones de la función
+            for (gParser.StatementContext stmt : functionSymbol.program.statement()) {
+                visit(stmt);
+            }
+
+            // Evaluar el valor de retorno
+            if (functionSymbol.returnExpression != null) {
+                returnValue = visit(functionSymbol.returnExpression.expression());
+                System.out.println("STACK:" + returnValue);
+                String type = functionSymbol.type;
+                if (!checkReturnCompatibility(type, returnValue)) {
+                    throw new RuntimeException("Error: In function " + functionSymbol.name + ", return value is not of type " + functionSymbol.type);
+                }
+            }
+            exitScope(); // Salir del ámbito de la función
+        }
+        return returnValue;
     }
+
 }

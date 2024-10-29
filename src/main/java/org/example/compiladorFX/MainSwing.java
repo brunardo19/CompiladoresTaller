@@ -134,7 +134,7 @@ public class MainSwing extends JFrame {
             semanticErrorTextArea.append("\n");
             semanticErrorTextArea.append("\n Tabla de Simbolos Global:\n");
             semanticErrorTextArea.append("-----------------------------------------------\n");
-            for (Map.Entry<String, MyVisitorFX.Symbol> entry : visitor.symbolTable.entrySet()) {
+            for (Map.Entry<String, MyVisitorFX.Symbol> entry : visitor.symbolTableGlobal.entrySet()) {
                 semanticErrorTextArea.append(entry.getKey() + ": " + entry.getValue() + "\n");
             }
             semanticErrorTextArea.append("-----------------------------------------------\n");
