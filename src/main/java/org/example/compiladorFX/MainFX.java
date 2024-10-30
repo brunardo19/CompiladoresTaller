@@ -164,9 +164,9 @@ public class MainFX extends Application {
         });
 
         ParseTree tree = parser.program();
-        MyVisitorFX visitor = new MyVisitorFX("");
+        MyVisitorFX visitor = new MyVisitorFX("","");
         visitor.visit(tree);
-        semanticErrorTextArea.appendText(visitor.getTextout());
+        semanticErrorTextArea.appendText(visitor.getErrorOut());
 
         if (parser.getNumberOfSyntaxErrors() > 0) {
             parserErrorTextArea.appendText("El analizador sintactico encontro: " + parser.getNumberOfSyntaxErrors() + " errores\n");

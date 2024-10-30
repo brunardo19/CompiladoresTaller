@@ -17,79 +17,87 @@ import java.util.Map;
 
 public class MainSwing extends JFrame {
 
-    private JTextArea codeTextArea;
-    private JTextArea semanticErrorTextArea;
-    private JTextArea parserErrorTextArea;
-    private JPanel treePanel;
-
+    private final JTextArea codeTextArea;
+    private final JTextArea semanticErrorTextArea;
+    private final JTextArea parserErrorTextArea;
+    private final JTextArea outputTextArea;
+    private final JPanel treePanel;
 
     public MainSwing() {
         setTitle("Interprete");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(1200, 800); // Increased size for better visibility
+        setSize(1200, 800); // Tamaño aumentado para mejor visibilidad.
 
-        // Source Code Editor
+        // Editor de código fuente.
         codeTextArea = new JTextArea();
-        codeTextArea.setBorder(new EmptyBorder(10, 10, 10, 10)); // Add padding
+        codeTextArea.setBorder(new EmptyBorder(10, 10, 10, 10)); // Añade padding.
 
-
-        // Parser Error Area
+        // Área de errores del parser.
         parserErrorTextArea = new JTextArea();
         parserErrorTextArea.setEditable(false);
 
-
-        // Semantic Error and Symbol Table Area
+        // Área de errores semánticos y tabla de símbolos.
         semanticErrorTextArea = new JTextArea();
         semanticErrorTextArea.setEditable(false);
 
-        // Buttons
+        // Área de salida.
+        outputTextArea = new JTextArea();
+        outputTextArea.setEditable(false);
+
+
+        // Botones.
         JButton compileButton = new JButton("Compilar");
-        compileButton.addActionListener(e -> compileCode());
+        compileButton.addActionListener(e -> compileCode()); // Listener para el botón de compilación.
 
         JButton loadButton = new JButton("Cargar Archivo");
-        loadButton.addActionListener(e -> loadFile());
+        loadButton.addActionListener(e -> loadFile()); // Listener para el botón de carga de archivo.
 
-        //BorderLayout for better organization
+        // Diseño BorderLayout
         JPanel topPanel = new JPanel(new BorderLayout());
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT)); // Align buttons to the left
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT)); // Alinea los botones a la izquierda.
         buttonPanel.add(loadButton);
         buttonPanel.add(compileButton);
 
-        topPanel.add(new JScrollPane(codeTextArea), BorderLayout.CENTER); // Add scroll to codeTextArea
-        topPanel.add(buttonPanel, BorderLayout.SOUTH);
+        topPanel.add(new JScrollPane(codeTextArea), BorderLayout.CENTER); // Añade scroll al editor de código.
+        topPanel.add(buttonPanel, BorderLayout.SOUTH); // Panel de botones en la parte inferior.
 
-
-        JPanel errorPanel = new JPanel(new GridLayout(1, 2));
+        JPanel errorPanel = new JPanel(new GridLayout(1, 3)); // GridLayout de 1 filas y 3 columnas.
         errorPanel.add(new JScrollPane(parserErrorTextArea));
         errorPanel.add(new JScrollPane(semanticErrorTextArea));
+        errorPanel.add(new JScrollPane(outputTextArea));
 
+        JPanel errorLabelPanel = new JPanel(new GridLayout(1, 3)); // GridLayout de 1 filas y 3 columnas.
+        errorLabelPanel.add(new JLabel("Errores sintácticos"));
+        errorLabelPanel.add(new JLabel("Acciones semánticas/Tabla de simbolos"));
+        errorLabelPanel.add(new JLabel("Salida"));
 
-        treePanel = new JPanel(); // Initialize the tree panel
+        treePanel = new JPanel(); // Inicializa el panel del árbol.
 
+        // Divide la parte superior horizontalmente para el editor de código y el árbol.
         JSplitPane topSplitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, topPanel, treePanel);
-        topSplitPane.setResizeWeight(0.5);
+        topSplitPane.setResizeWeight(0.5); // Proporción de espacio entre el editor y el árbol.
 
+        // Divide la ventana verticalmente para la parte superior (editor y árbol) y la parte inferior (errores).
         JSplitPane mainSplitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, topSplitPane, errorPanel);
-        mainSplitPane.setResizeWeight(0.7);
+        mainSplitPane.setResizeWeight(0.7); // Proporción de espacio entre la parte superior e inferior.
+
 
         add(mainSplitPane);
         setVisible(true);
     }
 
-
-
     private void loadFile() {
         JFileChooser fileChooser = new JFileChooser();
         fileChooser.setDialogTitle("Abrir archivo");
-        fileChooser.setFileFilter(new FileNameExtensionFilter("Text Files", "txt")); //Optional file filter
+        fileChooser.setFileFilter(new FileNameExtensionFilter("Text Files", "txt")); // Filtro de archivos opcional.
         int result = fileChooser.showOpenDialog(this);
 
-        if (result == JFileChooser.APPROVE_OPTION) {
+        if (result == JFileChooser.APPROVE_OPTION) { // Si el usuario selecciona un archivo.
             File selectedFile = fileChooser.getSelectedFile();
             try {
-                String code = Files.readString(selectedFile.toPath(), StandardCharsets.UTF_8);
-                codeTextArea.setText(code);
-            } catch (IOException e) {
+                String code = Files.readString(selectedFile.toPath(), StandardCharsets.UTF_8); // Lee el archivo.
+                codeTextArea.setText(code); // Muestra el código en el editor.
+            } catch (IOException e) { // Maneja errores de lectura.
                 semanticErrorTextArea.setText("Error cargando archivo" + e.getMessage());
             }
         }
@@ -106,6 +114,7 @@ public class MainSwing extends JFrame {
         }
         semanticErrorTextArea.setText(""); // Se usa setText para borrar
         parserErrorTextArea.setText("");
+        outputTextArea.setText("");
 
         CharStream input = CharStreams.fromString(code);
         gLexer lexer = new gLexer(input);
@@ -122,10 +131,10 @@ public class MainSwing extends JFrame {
         });
 
         ParseTree tree = parser.program();
-        MyVisitorFX visitor = new MyVisitorFX("");
+        MyVisitorFX visitor = new MyVisitorFX("","");
         visitor.visit(tree);
-        semanticErrorTextArea.append(visitor.getTextout());
-
+        semanticErrorTextArea.append(visitor.getErrorOut());
+        outputTextArea.append(visitor.getTextOut());
 
 
         if (parser.getNumberOfSyntaxErrors() > 0) {
@@ -142,7 +151,6 @@ public class MainSwing extends JFrame {
         }
 
 
-
         TreeViewer viewer = new TreeViewer(Arrays.asList(parser.getRuleNames()), tree);
 
         treePanel.removeAll();
@@ -155,6 +163,6 @@ public class MainSwing extends JFrame {
 
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new MainSwing());
+        SwingUtilities.invokeLater(MainSwing::new);
     }
 }
