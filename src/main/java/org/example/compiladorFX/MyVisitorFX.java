@@ -750,7 +750,15 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
             }
         } else if (ctx.number() != null) { // Si el factor es un número.
             return visit(ctx.number()); // Visita el número.
-        } else { // Si el factor es una expresión entre paréntesis.
+        } else if (ctx.function_call() != null) { // Si el factor es una llamada de funcion
+            Object val = visit(ctx.function_call());
+            if (val instanceof Number) {
+                return visit(ctx.function_call());
+            } else {
+                errorOut += "\n" + ("Error: La funcion '" + ctx.function_call().ID().getText() + "' no devuelve una variable numerica");
+                throw new RuntimeException("Error: La funcion '" + ctx.function_call().ID().getText() + "' no devuelve una variable numerica");
+            }
+        } else {// el factor es una expresión entre paréntesis.
             return visit(ctx.math_expression()); // Visita la expresión.
         }
     }
@@ -827,6 +835,14 @@ public class MyVisitorFX extends gBaseVisitor<Object> {
         } else if (ctx.logical_factor() != null) { // Si es una negación (!).
             Boolean value = (Boolean) visit(ctx.logical_factor());
             return !value; // Retorna la negación del valor.
+        } else if (ctx.function_call() != null) {
+            Object value = visit(ctx.function_call());
+            if (value instanceof Boolean){
+                return value;
+            }else {
+                errorOut += "\n" + ("Error: La funcion '" + ctx.function_call().ID().getText() + "' no devuelve una variable booleana");
+                throw new RuntimeException("Error: La funcion '" + ctx.function_call().ID().getText() + "' no devuelve una variable booleana");
+            }
         } else { // Si es una operación lógica entre paréntesis.
             return visit(ctx.logical_operation());
         }

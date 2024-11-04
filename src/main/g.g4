@@ -91,7 +91,8 @@ power_expr:
 factor:
    ID
    | number
-   | '(' math_expression ')';
+   | '(' math_expression ')'
+   | function_call;
 
 number:
    ('+'|'-')? INT
@@ -111,6 +112,7 @@ logical_term:
 
 logical_factor:
    boolean
+   | function_call
    | '!' logical_factor
    | '(' logical_operation ')';
 
