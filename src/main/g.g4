@@ -44,8 +44,7 @@ function_declaration:
     ;
 
 return_expression:
-    'return' expression ';'
-    |
+    RETURN expression ';'
     ;
 
 params:
@@ -134,6 +133,7 @@ FOR        : 'for';
 TRUE       : 'true';
 FALSE      : 'false';
 INT_TYPE   : 'int';
+RETURN     : 'return';
 DOUBLE_TYPE: 'double';
 BOOLEAN_TYPE: 'boolean';
 STRING_TYPE: 'string';

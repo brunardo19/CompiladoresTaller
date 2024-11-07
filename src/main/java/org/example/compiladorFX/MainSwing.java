@@ -131,25 +131,6 @@ public class MainSwing extends JFrame {
         });
 
         ParseTree tree = parser.program();
-        MyVisitorFX visitor = new MyVisitorFX("","");
-        visitor.visit(tree);
-        semanticErrorTextArea.append(visitor.getErrorOut());
-        outputTextArea.append(visitor.getTextOut());
-
-
-        if (parser.getNumberOfSyntaxErrors() > 0) {
-            parserErrorTextArea.append("El analizador sintactico encontro: " + parser.getNumberOfSyntaxErrors() + " errores\n");
-        } else {
-            semanticErrorTextArea.append("\n");
-            semanticErrorTextArea.append("\n Tabla de Simbolos Global:\n");
-            semanticErrorTextArea.append("-----------------------------------------------\n");
-            for (Map.Entry<String, MyVisitorFX.Symbol> entry : visitor.symbolTableGlobal.entrySet()) {
-                semanticErrorTextArea.append(entry.getKey() + ": " + entry.getValue() + "\n");
-            }
-            semanticErrorTextArea.append("-----------------------------------------------\n");
-            parserErrorTextArea.append("No hay errores en el analizador sintactico\n");
-        }
-
 
         TreeViewer viewer = new TreeViewer(Arrays.asList(parser.getRuleNames()), tree);
 
@@ -159,6 +140,33 @@ public class MainSwing extends JFrame {
         treePanel.add(treeScrollPane);
         treePanel.revalidate();
         treePanel.repaint();
+
+
+        if (parser.getNumberOfSyntaxErrors() > 0) {
+            parserErrorTextArea.append("El analizador sintactico encontro: " + parser.getNumberOfSyntaxErrors() + " errores\n");
+            return;
+        }
+
+        MyVisitorFX visitor = new MyVisitorFX("","");
+        visitor.visit(tree);
+        semanticErrorTextArea.append(visitor.getErrorOut());
+        outputTextArea.append(visitor.getTextOut());
+
+
+        semanticErrorTextArea.append("\n");
+        semanticErrorTextArea.append("\n Tabla de Simbolos Global:\n");
+        semanticErrorTextArea.append("-----------------------------------------------\n");
+        for (Map.Entry<String, MyVisitorFX.Symbol> entry : visitor.symbolTableGlobal.entrySet()) {
+            semanticErrorTextArea.append(entry.getKey() + ": " + entry.getValue() + "\n");
+        }
+        semanticErrorTextArea.append("-----------------------------------------------\n");
+        parserErrorTextArea.append("No hay errores en el analizador sintactico\n");
+
+
+
+
+
+
     }
 
 
